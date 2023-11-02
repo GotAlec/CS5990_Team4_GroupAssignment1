@@ -1,30 +1,118 @@
-#from networkx.algorithms import community
-#from operator import itemgetter
+# Algorithm 4.1 Small-World Generation Algorithm
+# Require: Number of nodes |V|, mean degree c, parameter β
+# 1: return A small-world graph G(V, E)
+# 2: G = A regular ring lattice with |V| nodes and degree c
+# 3: for node vi (starting from v1), and all edges e(vi
+# , vj), i < j do
+# 4: vk = Select a node from V uniformly at random.
+# 5: if rewiring e(vi
+# , vj) to e(vi
+# , vk) does not create loops in the graph or
+# multiple edges between vi and vk then
+# 6: rewire e(vi
+# , vj) with probability β: E = E−{e(vi
+# , vj)}, E = E∪{e(vi
+# , vk)};
+# 7: end if
+# 8: end for
+# 9: Return G(V, E)
+
+# from networkx.algorithms import community
+# from operator import itemgetter
 import matplotlib
-matplotlib.use('TkAgg',force=True)
+
+matplotlib.use('TkAgg', force=True)
 from matplotlib import pyplot as plt
 import networkx as nx
 import csv
+import numba
+import cupy as cp
+import random
+
+# Testing creating graph from large dataset using GPU
+# CUDA kernel to create a regular ring lattice on the GPU
+# @numba.vectorize(['int32(int32, int32)'], target='cuda')
+# def create_regular_ring_lattice_gpu(V, c):
+#     node = numba.cuda.grid(1)
+#     if node < V:
+#         neighbors = cp.empty(c, dtype=cp.int32)
+#         for i in range(c // 2):
+#             neighbors[i] = (node + i + 1) % V
+#             neighbors[c - i - 1] = (node - i - 1) % V
+#         return neighbors
+#     else:
+#         return cp.zeros(c, dtype=cp.int32)
+#
+#
+# # Example usage:
+# V = 20  # Number of nodes
+# c = 4  # Mean degree
+#
+# # Calculate the grid size for the GPU
+# block_size = 32
+# grid_size = (V + block_size - 1) // block_size
+#
+# # Allocate an array to store the results on the GPU
+# ring_lattice_gpu = cp.zeros((V, c), dtype=cp.int32)
+#
+# # Launch the CUDA kernel to create the regular ring lattice on the GPU
+# create_regular_ring_lattice_gpu[grid_size, block_size](V, c, ring_lattice_gpu)
 
 
-def Watts_Strogatz(V, c, B):
-    '''
-        Require: Number of nodes |V|, mean degree c, parameter B
-            1: return A small-world graph G(V,E)
-            2: G = A regular ring lattice with |V| nodes and degree c
-            3: for node vi (starting from v1), and all edges e(vi,vj), i < j do
-            4:  vk = Select a node from V uniformly at random.
-            5:  if rewiring e(vi; vj) to e(vi; vk) does not create loops in the graph or
-                multiple edges between vi and vk then
-            6:  rewire e(vi; vj) with probability B: E = E-{e(vi,vj)}, E = E U {e(vi; vk)};
-            7:  end if
-            8: end for
-            9: Return G(V,E)
-    '''
+# Now, the `ring_lattice_gpu` on the GPU contains the regular ring lattice.
 
 
+# create a ring lattice where each node is associated with its neighbors
+# the mean degree c is used to compute the number of neighbors, this ensures that each node is
+# connected to exactly c neighbors in a ring like structure
+def create_watts_strogatz_network_model():
+    # Load the Amazon Product Network dataset
+    with open('com-amazon.ungraph(fixed).txt', 'r') as nodecsv:
+        nodereader = csv.reader(nodecsv)
+        nodes = [n for n in nodereader][1:]
 
-    return
+    node_names = [n[0] for n in nodes]
+
+    with open('com-amazon.ungraph(fixed).txt', 'r') as f:
+        edgereader = csv.reader(f)
+        edges = [tuple(e) for e in edgereader][1:]
+        # edges = [tuple(map(int, line.strip().split())) for line in f]
+
+        # Convert edges to integers
+        edges = [(int(u), int(v)) for u, v in edges]
+
+    # Create a Watts-Strogatz network model
+    n = max(max(edges)) + 1
+    k = 10
+    p = 0.1
+
+    # Create a ring over n nodes
+    nodes = list(range(n))
+
+    adj_list = {node: [(node + i) % n for i in range(1, k // 2 + 1)] for node in nodes}
+
+    # Rewire edges with probability p
+    for node in nodes:
+        for neighbor in adj_list[node]:
+            if random.random() < p:
+                new_neighbor = random.choice(nodes)
+                while new_neighbor == node or new_neighbor in adj_list[node] or new_neighbor in adj_list[neighbor]:
+                    new_neighbor = random.choice(nodes)
+                if new_neighbor not in adj_list[neighbor]:
+                    if neighbor in adj_list[node]:
+                        adj_list[node].remove(neighbor)
+                    if node in adj_list[neighbor]:
+                        adj_list[neighbor].remove(node)
+                    adj_list[node].append(new_neighbor)
+                    adj_list[new_neighbor].append(node)
+
+    # Convert adjacency list to edgelist format
+    edges = [(node, neighbor) for node in nodes for neighbor in adj_list[node]]
+
+    return edges
+
+# edges = create_watts_strogatz_network_model()
+# print(edges)
 
 
 def Barabasi_Albert():
@@ -45,35 +133,35 @@ def Barabasi_Albert():
     return
 
 
-def load_data(filename,print=False):
-    if filename == 'com-amazon.ungraph.txt':
-        with open('com-amazon.ungraph.txt') as fin, open('com-amazon.ungraph(fixed).txt', 'w') as fout:
-            for line in fin:
-                fout.write(line.replace('\t', ','))
-        fin.close()
-        fout.close()
-        filename = 'com-amazon.ungraph(fixed).txt'
+def load_data(filename, print=False):
+    # if filename == 'com-amazon.ungraph.txt':
+    #     with open('com-amazon.ungraph.txt') as fin, open('com-amazon.ungraph(fixed).txt', 'w') as fout:
+    #         for line in fin:
+    #             fout.write(line.replace('\t', ','))
+    #     fin.close()
+    #     fout.close()
+    #     filename = 'com-amazon.ungraph(fixed).txt'
 
     with open(filename, 'r') as nodecsv:
         nodereader = csv.reader(nodecsv)
         nodes = [n for n in nodereader][1:]
 
     node_names = [n[0] for n in nodes]
-    #node_names = list(set(node_names))
+    # node_names = list(set(node_names))
 
     with open(filename, 'r') as edgecsv:
         edgereader = csv.reader(edgecsv)
         edges = [tuple(e) for e in edgereader][1:]
-    
+
     if print:
-        print('Nodes:'+str(len(node_names)))
-        print('Edges:'+str(len(edges)))
+        print('Nodes:' + str(len(node_names)))
+        print('Edges:' + str(len(edges)))
 
     return node_names, edges
 
 
 def make_graph(node_names, edges):
-    G=nx.Graph()
+    G = nx.Graph()
     G.add_nodes_from(node_names)
     G.add_edges_from(edges)
     return G
@@ -90,15 +178,18 @@ def print_table(ON_amazon, ON_twitch, WS, BA):
     | ------------------------------------------------------------------------------------------------------------------------------------------- |
     |                         Original Network                                |          Watts-Strogatz         |         Barabasi-Albert         |
     | ----------------------------------------------------------------------- | ------------------------------- | ------------------------------- |
-    | Network         |   Size  |  Avg Deg  |   Avg Path Len  |  Clust Coeff  |   Avg Path Len  |  Clust Coeff  |   Avg Path Len  |  Clust Coeff  | 
+    | Network         |   Size  |  Avg Deg  |   Avg Path Len  |  Clust Coeff  |   Avg Path Len  |  Clust Coeff  |   Avg Path Len  |  Clust Coeff  |
     | Com-Amazon      |         |           |                 |               |                 |               |                 |               |
     | Twitch Gamers   |         |           |                 |               |                 |               |                 |               |
     | ------------------------------------------------------------------------------------------------------------------------------------------- |
     '''
     t = [['', 'Original Network', 'Watts-Strogatz', 'Barabasi-Albert'],
-         ['Network', 'Size', 'Average Degree', 'Average Path Length', 'Clustering Coefficient', 'Average Path Length', 'Clustering Coefficient', 'Average Path Length', 'Clustering Coefficient'],
-         ['Com-Amazon', ON_amazon.size(), nx.average_degree_connectivity(ON_amazon), nx.average_shortest_path_length(ON_amazon), nx.average_clustering(ON_amazon)],
-         ['Twitch Gamers', ON_twitch.size(), nx.average_degree_connectivity(ON_twitch), nx.average_shortest_path_length(ON_twitch), nx.average_clustering(ON_twitch)]]
+         ['Network', 'Size', 'Average Degree', 'Average Path Length', 'Clustering Coefficient', 'Average Path Length',
+          'Clustering Coefficient', 'Average Path Length', 'Clustering Coefficient'],
+         ['Com-Amazon', ON_amazon.size(), nx.average_degree_connectivity(ON_amazon),
+          nx.average_shortest_path_length(ON_amazon), nx.average_clustering(ON_amazon)],
+         ['Twitch Gamers', ON_twitch.size(), nx.average_degree_connectivity(ON_twitch),
+          nx.average_shortest_path_length(ON_twitch), nx.average_clustering(ON_twitch)]]
 
     print(t)
     return
@@ -106,27 +197,36 @@ def print_table(ON_amazon, ON_twitch, WS, BA):
 
 def main(print_status=True):
     '''
-    Important: The network in each of these data sets may contain multiple components. 
+    Important: The network in each of these data sets may contain multiple components.
     You should extract the largest connected component and simulate this component using the network model implementation.
     '''
     print('CS5990 - Team 4 - Group Assignment 1\nGabriel Alfredo Siguenza, Alec Gotts, Jun Ho Ha, Ardavan Sherafat\n')
 
-    if print_status : print('Loading "large_twitch_edges.csv" data')
-    node_names, edges = load_data('large_twitch_edges.csv')
-    if print_status : print('Making "large_twitch_edges.csv" graph')
-    Graph_twitch = make_graph(node_names, edges)
+    # if print_status: print('Loading "large_twitch_edges.csv" data')
+    # node_names, edges = load_data('large_twitch_edges.csv')
+    # if print_status: print('Making "large_twitch_edges.csv" graph')
+    # Graph_twitch = make_graph(node_names, edges)
 
-    if print_status : print('Loading "com-amazon.ungraph.txt" data')
-    node_names, edges = load_data('com-amazon.ungraph.txt')
-    if print_status : print('Making "com-amazon.ungraph.txt" graph')
-    Graph_amazon = make_graph(node_names, edges)
+    # if print_status: print('Loading "com-amazon.ungraph.txt" data')
+    #
+    # # node_names, edges = load_data('com-amazon.ungraph.txt')
+    #
+    # node_names, edges = load_data('com-amazon.ungraph(fixed).txt')
+    # if print_status: print('Making "com-amazon.ungraph.txt" graph')
+    # Graph_amazon = make_graph(node_names, edges)
 
-    if print_status : print('Making Watts-Strogatz (4.1) graph')
-    Graph_WS = Watts_Strogatz(V=100000, c=10, B=1)
-    if print_status : print('Making Barabasi-Albert (4.2) graph')
+    # Get graph largest component
+    # twitch_largest = Graph_twitch.subgraph(max(nx.connected_components(Graph_twitch), key=len))
+    # amazon_largest = Graph_amazon.subgraph(max(nx.connected_components(Graph_amazon), key=len))
+
+    if print_status: print('Making Watts-Strogatz (4.1) graph')
+    # Graph_WS = create_watts_strogatz_network_model(100000, 10, 0.1)
+    Graph_WS = create_watts_strogatz_network_model()
+    if print_status: print('Making Barabasi-Albert (4.2) graph')
     Graph_BA = Barabasi_Albert()
 
-    #print_table(Graph_amazon, Graph_twitch, Graph_WS, Graph_BA)
+    # THIS WILL TAKE FOREVER...
+    # print_table(Graph_amazon, Graph_twitch, Graph_WS, Graph_BA)
     input('Press any key to continue...')
     return
 
