@@ -59,7 +59,31 @@ def Barabasi_Albert():
             9: end for
             10: Return G(V; E)
     '''
-    return
+    #  Initial graph with m0 nodes with degrees at least 1
+    G = nx.complete_graph(m0)
+    
+    # Main loop where nodes are added to the network
+    for _ in range(t):
+        #  Add new node vi
+        new_node = len(G)
+        G.add_node(new_node)
+        
+        #  Connect the new node with m existing nodes
+        degrees = nx.degree(G)
+        node_probabilities = [degree / sum(dict(degrees).values()) for _, degree in degrees]
+        
+        targets = set()
+        while len(targets) < m:
+            # Connect to existing node with preferential attachment
+            target = random.choices(population=list(G.nodes), weights=node_probabilities, k=1)[0]
+            if target not in targets:
+                targets.add(target)
+        
+        # Add edges to new node
+        G.add_edges_from([(new_node, target) for target in targets])
+        
+    # Return the final graph
+    return G
 
 
 def load_data(filename,print=False):
