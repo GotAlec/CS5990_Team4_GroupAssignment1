@@ -1,13 +1,10 @@
-# from networkx.algorithms import community
-# from operator import itemgetter
 import matplotlib
 
 matplotlib.use('TkAgg', force=True)
 from matplotlib import pyplot as plt
 import networkx as nx
 import csv
-import numba
-import cupy as cp
+
 import random
 
 # create a ring lattice where each node is associated with its neighbors
