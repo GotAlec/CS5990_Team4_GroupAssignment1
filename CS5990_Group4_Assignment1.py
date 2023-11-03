@@ -1,22 +1,3 @@
-# Algorithm 4.1 Small-World Generation Algorithm
-# Require: Number of nodes |V|, mean degree c, parameter β
-# 1: return A small-world graph G(V, E)
-# 2: G = A regular ring lattice with |V| nodes and degree c
-# 3: for node vi (starting from v1), and all edges e(vi
-# , vj), i < j do
-# 4: vk = Select a node from V uniformly at random.
-# 5: if rewiring e(vi
-# , vj) to e(vi
-# , vk) does not create loops in the graph or
-# multiple edges between vi and vk then
-# 6: rewire e(vi
-# , vj) with probability β: E = E−{e(vi
-# , vj)}, E = E∪{e(vi
-# , vk)};
-# 7: end if
-# 8: end for
-# 9: Return G(V, E)
-
 # from networkx.algorithms import community
 # from operator import itemgetter
 import matplotlib
@@ -28,39 +9,6 @@ import csv
 import numba
 import cupy as cp
 import random
-
-# Testing creating graph from large dataset using GPU
-# CUDA kernel to create a regular ring lattice on the GPU
-# @numba.vectorize(['int32(int32, int32)'], target='cuda')
-# def create_regular_ring_lattice_gpu(V, c):
-#     node = numba.cuda.grid(1)
-#     if node < V:
-#         neighbors = cp.empty(c, dtype=cp.int32)
-#         for i in range(c // 2):
-#             neighbors[i] = (node + i + 1) % V
-#             neighbors[c - i - 1] = (node - i - 1) % V
-#         return neighbors
-#     else:
-#         return cp.zeros(c, dtype=cp.int32)
-#
-#
-# # Example usage:
-# V = 20  # Number of nodes
-# c = 4  # Mean degree
-#
-# # Calculate the grid size for the GPU
-# block_size = 32
-# grid_size = (V + block_size - 1) // block_size
-#
-# # Allocate an array to store the results on the GPU
-# ring_lattice_gpu = cp.zeros((V, c), dtype=cp.int32)
-#
-# # Launch the CUDA kernel to create the regular ring lattice on the GPU
-# create_regular_ring_lattice_gpu[grid_size, block_size](V, c, ring_lattice_gpu)
-
-
-# Now, the `ring_lattice_gpu` on the GPU contains the regular ring lattice.
-
 
 # create a ring lattice where each node is associated with its neighbors
 # the mean degree c is used to compute the number of neighbors, this ensures that each node is
