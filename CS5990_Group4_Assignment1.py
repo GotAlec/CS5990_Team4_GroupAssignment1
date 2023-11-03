@@ -9,22 +9,39 @@ import csv
 
 def Watts_Strogatz(V, c, B):
     '''
-        Require: Number of nodes |V|, mean degree c, parameter B
-            1: return A small-world graph G(V,E)
-            2: G = A regular ring lattice with |V| nodes and degree c
-            3: for node vi (starting from v1), and all edges e(vi,vj), i < j do
-            4:  vk = Select a node from V uniformly at random.
-            5:  if rewiring e(vi; vj) to e(vi; vk) does not create loops in the graph or
-                multiple edges between vi and vk then
-            6:  rewire e(vi; vj) with probability B: E = E-{e(vi,vj)}, E = E U {e(vi; vk)};
-            7:  end if
-            8: end for
-            9: Return G(V,E)
+    Require: Number of nodes |V|, mean degree c, parameter B
+    1: return A small-world graph G(V,E)
+    2: G = A regular ring lattice with |V| nodes and degree c
+    3: for node vi (starting from v1), and all edges e(vi,vj), i < j do
+    4:  vk = Select a node from V uniformly at random.
+    5:  if rewiring e(vi; vj) to e(vi; vk) does not create loops in the graph or
+        multiple edges between vi and vk then
+    6:  rewire e(vi; vj) with probability B: E = E-{e(vi,vj)}, E = E U {e(vi; vk)};
+    7:  end if
+    8: end for
+    9: Return G(V,E)
     '''
 
+    # Create a regular ring lattice with V nodes and degree c
+    G = nx.Graph()
+    for vi in range(V):
+        for d in range(1, c//2 + 1):  # Connecting each node to c/2 neighbors on both sides
+            vj = (vi + d) % V
+            G.add_edge(vi, vj)
 
+    # Loop over each node and its edges to possibly rewire
+    for vi in G.nodes():
+        for vj in list(G.neighbors(vi)):
+            if vi < vj:
+                vk = random.choice(list(G.nodes()))
 
-    return
+                # Check if the edge rewiring would create loops or multiple edges
+                if vk != vi and vk != vj and not G.has_edge(vi, vk):
+                    if random.random() < B:
+                        G.remove_edge(vi, vj)
+                        G.add_edge(vi, vk)
+    return G
+
 
 
 def Barabasi_Albert():
