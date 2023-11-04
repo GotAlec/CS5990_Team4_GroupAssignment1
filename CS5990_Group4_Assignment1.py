@@ -246,23 +246,20 @@ def print_table(ON_amazon, ON_twitch, WS, BA):
 
 
 def main(print_status=True):
-    '''
-    Important: The network in each of these data sets may contain multiple components.
-    You should extract the largest connected component and simulate this component using the network model implementation.
-    '''
+
     print('CS5990 - Team 4 - Group Assignment 1\nGabriel Alfredo Siguenza, Alec Gotts, Jun Ho Ha, Ardavan Sherafat\n')
 
     if print_status: print('Loading "large_twitch_edges.csv" data')
     node_names, edges = load_data('large_twitch_edges.csv')
     if print_status: print('Making "large_twitch_edges.csv" graph')
-    Graph_twitch = make_graph(node_names, edges)
-    Graph_twitch = Graph_twitch.subgraph(max(nx.connected_components(Graph_twitch), key=len))
+    # Graph_twitch = make_graph(node_names, edges)
+    # Graph_twitch = Graph_twitch.subgraph(max(nx.connected_components(Graph_twitch), key=len))
 
     if print_status: print('Loading "com-amazon.ungraph.txt" data')
     node_names, edges = load_data('com-amazon.ungraph.txt')
     if print_status: print('Making "com-amazon.ungraph.txt" graph')
-    Graph_amazon = make_graph(node_names, edges)
-    Graph_amazon = Graph_amazon.subgraph(max(nx.connected_components(Graph_amazon), key=len))
+    # Graph_amazon = make_graph(node_names, edges)
+    # Graph_amazon = Graph_amazon.subgraph(max(nx.connected_components(Graph_amazon), key=len))
 
     if print_status: print('Making Watts-Strogatz (4.1) graph')
     Graph_WS = Watts_Strogatz(100, 4, 0.2)
@@ -276,14 +273,14 @@ def main(print_status=True):
     num_nodes = 10000
 
     # get average path length, degree, and clustering coefficient for twitch and amazon graphs
-    avg_path_twitch = get_avg_path(Graph_twitch, num_nodes)
-    avg_degree_twitch = get_avg_degree(Graph_twitch, num_nodes)
-    avg_clust_twitch = get_avg_clust(Graph_twitch, num_nodes)
-
-    avg_path_amazon = get_avg_path(Graph_amazon, num_nodes)
-    avg_degree_amazon = get_avg_degree(Graph_amazon, num_nodes)
-    avg_clust_amazon = get_avg_clust(Graph_amazon, num_nodes)
-
+    # avg_path_twitch = get_avg_path(Graph_twitch, num_nodes)
+    # avg_degree_twitch = get_avg_degree(Graph_twitch, num_nodes)
+    # avg_clust_twitch = get_avg_clust(Graph_twitch, num_nodes)
+    #
+    # avg_path_amazon = get_avg_path(Graph_amazon, num_nodes)
+    # avg_degree_amazon = get_avg_degree(Graph_amazon, num_nodes)
+    # avg_clust_amazon = get_avg_clust(Graph_amazon, num_nodes)
+    #
     # get average path length, degree, and clustering coefficient for WS and BA graphs
     avg_path_BA = get_avg_path(Graph_BA, num_nodes)
     avg_clust_BA = get_avg_clust(Graph_BA, num_nodes)
@@ -292,20 +289,20 @@ def main(print_status=True):
     avg_clust_WS = get_avg_clust(Graph_WS, num_nodes)
 
     # display results
-    print("Average Shortest Path Length for Twitch Graph:", avg_path_twitch)
-    print("Average Degree for Twitch Graph:", avg_degree_twitch)
-    print("Average Clustering Coefficient for Twitch Graph:", avg_clust_twitch)
-
-    print("Average Shortest Path Length for Amazon Graph:", avg_path_amazon)
-    print("Average Degree for Amazon Graph:", avg_degree_amazon)
-    print("Average Clustering Coefficient for Amazon Graph:", avg_clust_amazon)
+    # print("Average Shortest Path Length for Twitch Graph:", avg_path_twitch)
+    # print("Average Degree for Twitch Graph:", avg_degree_twitch)
+    # print("Average Clustering Coefficient for Twitch Graph:", avg_clust_twitch)
+    #
+    # print("Average Shortest Path Length for Amazon Graph:", avg_path_amazon)
+    # print("Average Degree for Amazon Graph:", avg_degree_amazon)
+    # print("Average Clustering Coefficient for Amazon Graph:", avg_clust_amazon)
 
     # display results for the WS and BA graphs for comparison
     print("Average Shortest Path Length for BA Algorithm Graph:", avg_path_BA)
-    print("Average Clustering Coefficient Length for BA Algorithm Graph:", Graph_BA)
+    print("Average Clustering Coefficient Length for BA Algorithm Graph:", avg_clust_BA)
 
-    print("Average Shortest Path Length for WS Algorithm Graph:", Graph_WS)
-    print("Average Clustering Coefficient for WS Algorithm Graph:", Graph_WS)
+    print("Average Shortest Path Length for WS Algorithm Graph:", avg_path_WS)
+    print("Average Clustering Coefficient for WS Algorithm Graph:", avg_clust_WS)
 
     return
 
