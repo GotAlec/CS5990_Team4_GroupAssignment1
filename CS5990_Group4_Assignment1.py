@@ -10,6 +10,47 @@ import networkx as nx
 import csv
 import random
 import sys
+import scipy
+import multiprocessing
+import numpy as np
+# import cuda
+# import cugraph
+# import cudf
+
+
+# Define a CUDA kernel for degree calculation
+# @cuda.jit
+# def calculate_degree_kernel(src_nodes, dst_nodes, degrees, num_iterations):
+#     tid = cuda.grid(1)
+#     stride = cuda.gridsize(1)
+#
+#     for i in range(tid, num_iterations, stride):
+#         degrees[tid] = degrees[tid] + src_nodes[i]
+#
+# def get_avg_degree_gpu(G, i):
+#     degree_sum = 0
+#     num_nodes = G.number_of_nodes()
+#
+#     src_nodes = np.random.randint(0, num_nodes, i)
+#     dst_nodes = np.random.randint(0, num_nodes, i)
+#
+#     # Move data to the GPU
+#     src_nodes_gpu = cuda.to_device(src_nodes)
+#     dst_nodes_gpu = cuda.to_device(dst_nodes)
+#     degrees_gpu = cuda.device_array(i)
+#
+#     # Define CUDA kernel configuration
+#     threadsperblock = 128
+#     blockspergrid = (i + (threadsperblock - 1)) // threadsperblock
+#
+#     # Launch the CUDA kernel
+#     calculate_degree_kernel[blockspergrid, threadsperblock](src_nodes_gpu, dst_nodes_gpu, degrees_gpu, i)
+#
+#     # Copy the result back from GPU to CPU
+#     degrees_gpu.copy_to_host(degrees_gpu)
+#
+#     degree_sum = degrees_gpu.sum()
+#     return degree_sum / i
 
 def Watts_Strogatz(V, c, B):
     '''
@@ -133,20 +174,47 @@ def disp_graph(G):
 def get_avg_degree(G, i):
     x = 0
 
-    for _ in range(i):
+    for count in range(i):
+        percent_complete = (count + 1) / i
+        progress_bar(percent_complete)
         cur = random.choice(list(G.nodes()))
         x += G.degree[cur]
-
+    progress_bar(1, complete=True)
     return x / i
+
+
+def worker(G, count, i, results):
+    x = 0
+    for _ in range(count):
+        cur = random.choice(list(G.nodes()))
+        x += G.degree[cur]
+    results.append(x)
+
+
+def get_avg_degree_parallel(G, i, num_processes=4):
+    pool = multiprocessing.Pool(processes=num_processes)
+    results = multiprocessing.Manager().list()
+    chunk_size = i // num_processes
+    count_per_process = [chunk_size] * num_processes
+
+    # Distribute the work among processes
+    pool.starmap(worker, [(G, count, chunk_size, results) for count in count_per_process])
+    pool.close()
+    pool.join()
+
+    total = sum(results)
+    return total / i
 
 
 def get_avg_clust(G, i):
     x = 0
 
-    for _ in range(i):
+    for count in range(i):
+        percent_complete = (count + 1) / i
+        progress_bar(percent_complete)
         cur = random.choice(list(G.nodes()))
         x += nx.clustering(G, cur)
-
+    progress_bar(1, complete=True)
     return x / i
 
 
@@ -160,7 +228,9 @@ def get_avg_path(G, i):
         return 0  # The graph is empty
 
     for count in range(i):
-
+        # Update the loading bar
+        percent_complete = (count + 1) / i
+        progress_bar(percent_complete)
         # Randomly select a connected component
         component = random.choice(components)
 
@@ -177,7 +247,8 @@ def get_avg_path(G, i):
                 # If there's no path between the selected nodes, NetworkX raises an exception
                 # In this case, you might want to handle it appropriately (e.g., skip or set to a special value)
                 pass
-
+    # Finish the loading bar
+    progress_bar(1, complete=True)
     return x / i
 
 
@@ -231,10 +302,10 @@ def main(print_status=True):
     Graph_twitch = Graph_twitch.subgraph(max(nx.connected_components(Graph_twitch), key=len))
 
     if print_status: print('Loading "com-amazon.ungraph.txt" data')
-    node_names, edges = load_data('com-amazon.ungraph.txt')
+    # node_names, edges = load_data('com-amazon.ungraph.txt')
     if print_status: print('Making "com-amazon.ungraph.txt" graph')
-    Graph_amazon = make_graph(node_names, edges)
-    Graph_amazon = Graph_amazon.subgraph(max(nx.connected_components(Graph_amazon), key=len))
+    # Graph_amazon = make_graph(node_names, edges)
+    # Graph_amazon = Graph_amazon.subgraph(max(nx.connected_components(Graph_amazon), key=len))
 
     if print_status: print('Making Watts-Strogatz (4.1) graph')
     Graph_WS = Watts_Strogatz(100, 4, 0.2)
@@ -242,9 +313,60 @@ def main(print_status=True):
     if print_status: print('Making Barabasi-Albert (4.2) graph')
     Graph_BA = Barabasi_Albert(5, 2, 50)
 
-    # print_table(Graph_amazon, Graph_twitch, Graph_WS, Graph_BA)
+    # Convert the NetworkX graph to a cuGraph object
+    # G_cugraph = cugraph.Graph()
+    # G_cugraph.from_cudf_edgelist(nx.to_pandas_edgelist(G))
+
+    # Display graphs
+    # disp_graph(Graph_WS)
+    # disp_graph(Graph_BA)
+
+    # disp_graph(Graph_amazon)
+    # disp_graph(Graph_twitch)
+
+    # # Define the size of the subgraph (number of edges)
+    # subgraph_size = 5000
+    #
+    # # Randomly select a subset of edges
+    # subgraph_edges = random.sample(Graph_amazon.edges(), subgraph_size)
+    #
+    # # Create a subgraph containing only the selected edges and their connected nodes
+    # subgraph_a = Graph_amazon.edge_subgraph(subgraph_edges)
+    #
+    # # Randomly select a subset of edges
+    # subgraph_edges = random.sample(Graph_amazon.edges(), subgraph_size)
+    #
+    # # Create a subgraph containing only the selected edges and their connected nodes
+    # subgraph_t = Graph_amazon.edge_subgraph(subgraph_edges)
+    #
+    # disp_graph(subgraph_a)
+    # disp_graph(subgraph_t)
+
     input('Press any key to continue...')
 
+    # set the total nodes to calculate averages on
+    # num_nodes = 100000
+
+    # get average path length, degree, and clustering coefficient for twitch and amazon graphs
+    # avg_path_twitch = get_avg_path(Graph_twitch, num_nodes)
+    # avg_degree_twitch = get_avg_degree(Graph_twitch, num_nodes)
+    # avg_degree_twitch = get_avg_degree_parallel(Graph_twitch, 15, num_processes=4)
+    # avg_clust_twitch = get_avg_clust(Graph_twitch, num_nodes)
+
+    # avg_path_amazon = get_avg_path(Graph_amazon, num_nodes)
+    # avg_degree_amazon = get_avg_degree(Graph_amazon, num_nodes)
+    # avg_clust_amazon = get_avg_clust(Graph_amazon, num_nodes)
+
+    # display results
+    # print("Average Shortest Path Length for Twitch Graph:", avg_path_twitch)
+    # print("Average Degree for Twitch Graph:", avg_degree_twitch)
+    # print("Average Clustering Coefficient for Twitch Graph:", avg_clust_twitch)
+
+    # print("Average Shortest Path Length for Amazon Graph:", avg_path_amazon)
+    # print("Average Degree for Amazon Graph:", avg_degree_amazon)
+    # print("Average Shortest Path Length for Amazon Graph:", avg_clust_amazon)
+
+    # print_table(Graph_amazon, Graph_twitch, Graph_WS, Graph_BA)
     return
 
 
