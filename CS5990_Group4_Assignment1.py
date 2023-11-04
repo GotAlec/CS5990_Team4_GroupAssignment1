@@ -274,7 +274,7 @@ def print_table(ON_amazon, ON_twitch, WS, BA):
     | Twitch Gamers   |         |           |                 |               |                 |               |                 |               |
     | ------------------------------------------------------------------------------------------------------------------------------------------- |
     '''
-    i = 1
+    i = 10000
 
     t = [['', 'Original Network', 'Watts-Strogatz', 'Barabasi-Albert'],
          ['Network', 'Size', 'Average Degree', 'Average Path Length', 'Clustering Coefficient', 'Average Path Length',
@@ -302,10 +302,10 @@ def main(print_status=True):
     Graph_twitch = Graph_twitch.subgraph(max(nx.connected_components(Graph_twitch), key=len))
 
     if print_status: print('Loading "com-amazon.ungraph.txt" data')
-    # node_names, edges = load_data('com-amazon.ungraph.txt')
+    node_names, edges = load_data('com-amazon.ungraph.txt')
     if print_status: print('Making "com-amazon.ungraph.txt" graph')
-    # Graph_amazon = make_graph(node_names, edges)
-    # Graph_amazon = Graph_amazon.subgraph(max(nx.connected_components(Graph_amazon), key=len))
+    Graph_amazon = make_graph(node_names, edges)
+    Graph_amazon = Graph_amazon.subgraph(max(nx.connected_components(Graph_amazon), key=len))
 
     if print_status: print('Making Watts-Strogatz (4.1) graph')
     Graph_WS = Watts_Strogatz(100, 4, 0.2)
@@ -345,28 +345,28 @@ def main(print_status=True):
     input('Press any key to continue...')
 
     # set the total nodes to calculate averages on
-    # num_nodes = 100000
+    num_nodes = 10000
 
     # get average path length, degree, and clustering coefficient for twitch and amazon graphs
-    # avg_path_twitch = get_avg_path(Graph_twitch, num_nodes)
-    # avg_degree_twitch = get_avg_degree(Graph_twitch, num_nodes)
+    avg_path_twitch = get_avg_path(Graph_twitch, num_nodes)
+    avg_degree_twitch = get_avg_degree(Graph_twitch, num_nodes)
     # avg_degree_twitch = get_avg_degree_parallel(Graph_twitch, 15, num_processes=4)
-    # avg_clust_twitch = get_avg_clust(Graph_twitch, num_nodes)
+    avg_clust_twitch = get_avg_clust(Graph_twitch, num_nodes)
 
-    # avg_path_amazon = get_avg_path(Graph_amazon, num_nodes)
-    # avg_degree_amazon = get_avg_degree(Graph_amazon, num_nodes)
-    # avg_clust_amazon = get_avg_clust(Graph_amazon, num_nodes)
+    avg_path_amazon = get_avg_path(Graph_amazon, num_nodes)
+    avg_degree_amazon = get_avg_degree(Graph_amazon, num_nodes)
+    avg_clust_amazon = get_avg_clust(Graph_amazon, num_nodes)
 
     # display results
-    # print("Average Shortest Path Length for Twitch Graph:", avg_path_twitch)
-    # print("Average Degree for Twitch Graph:", avg_degree_twitch)
-    # print("Average Clustering Coefficient for Twitch Graph:", avg_clust_twitch)
+    print("Average Shortest Path Length for Twitch Graph:", avg_path_twitch)
+    print("Average Degree for Twitch Graph:", avg_degree_twitch)
+    print("Average Clustering Coefficient for Twitch Graph:", avg_clust_twitch)
 
-    # print("Average Shortest Path Length for Amazon Graph:", avg_path_amazon)
-    # print("Average Degree for Amazon Graph:", avg_degree_amazon)
-    # print("Average Shortest Path Length for Amazon Graph:", avg_clust_amazon)
+    print("Average Shortest Path Length for Amazon Graph:", avg_path_amazon)
+    print("Average Degree for Amazon Graph:", avg_degree_amazon)
+    print("Average Shortest Path Length for Amazon Graph:", avg_clust_amazon)
 
-    # print_table(Graph_amazon, Graph_twitch, Graph_WS, Graph_BA)
+    print_table(Graph_amazon, Graph_twitch, Graph_WS, Graph_BA)
     return
 
 
